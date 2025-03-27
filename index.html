@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> Real Time Currency Converter</title>
+    <title>Real Time Currency Converter</title>
     <style>
         :root {
             --primary-color: #6200ee;
@@ -136,13 +136,66 @@
         #convertBtn:hover {
             background: var(--secondary-color);
         }
+
+        /* Mobile responsiveness only */
+        @media (max-width: 600px) {
+            body {
+                padding: 15px;
+            }
+            
+            .container {
+                padding: 20px;
+                margin: 20px auto;
+                width: 95%;
+            }
+            
+            .dropdown-group {
+                flex-direction: column;
+            }
+            
+            .arrow {
+                transform: rotate(90deg);
+                margin: 10px 0;
+            }
+            
+            .input-group input {
+                padding: 12px;
+                font-size: 15px;
+            }
+            
+            .currency-box select {
+                font-size: 15px;
+                padding: 8px;
+            }
+            
+            #convertBtn {
+                padding: 12px;
+                font-size: 15px;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .input-group input {
+                padding: 10px;
+                font-size: 14px;
+            }
+            
+            .currency-box select {
+                font-size: 14px;
+                padding: 6px;
+            }
+        }
     </style>
 </head>
 <body>
     <button id="themeToggle">🌙 Dark Mode</button>
 
     <div class="container">
-        <h2>💰 Real-Time Currency Converter</h2>
+        <h2>💰 Currency Converter</h2>
         
         <div class="converter">
             <div class="input-group">
@@ -151,12 +204,10 @@
             
             <div class="dropdown-group">
                 <div class="currency-box">
-                   
                     <select id="fromCurrency"></select>
                 </div>
                 <span class="arrow" id="swapCurrencies">⇄</span>
                 <div class="currency-box">
-                    
                     <select id="toCurrency"></select>
                 </div>
             </div>
