@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> Real Time Currency Converter</title>
+    <style>
+        :root {
+            --primary-color: #6200ee;
+            --secondary-color: #03dac6;
+            --background-color: #ffffff;
+            --text-color: #000000;
+            --input-bg: #f5f5f5;
+            --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .dark-mode {
+            --primary-color: #bb86fc;
+            --secondary-color: #03dac6;
+            --background-color: #121212;
+            --text-color: #ffffff;
+            --input-bg: #1e1e1e;
+            --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        #themeToggle {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+
+        #themeToggle:hover {
+            background: var(--secondary-color);
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 50px auto;
+            background: var(--background-color);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: var(--box-shadow);
+            transition: background-color 0.3s;
+        }
+
+        h2 {
+            color: var(--primary-color);
+        }
+
+        .converter {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid var(--primary-color);
+            border-radius: 8px;
+            font-size: 16px;
+            background: var(--input-bg);
+            color: var(--text-color);
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        .dropdown-group {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .currency-box {
+            display: flex;
+            align-items: center;
+            border: 2px solid var(--primary-color);
+            border-radius: 8px;
+            padding: 5px;
+            background: var(--input-bg);
+            flex: 1;
+        }
+
+        .currency-box img {
+            width: 30px;
+            height: 20px;
+            margin-right: 10px;
+            object-fit: cover;
+        }
+
+        .currency-box select {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: transparent;
+            color: var(--text-color);
+            font-size: 16px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .arrow {
+            font-size: 24px;
+            color: var(--primary-color);
+            cursor: pointer;
+        }
+
+        #convertBtn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        #convertBtn:hover {
+            background: var(--secondary-color);
+        }
+    </style>
+</head>
+<body>
+    <button id="themeToggle">🌙 Dark Mode</button>
+
+    <div class="container">
+        <h2>💰 Currency Converter</h2>
+        
+        <div class="converter">
+            <div class="input-group">
+                <input type="number" id="amount" placeholder="Enter amount" />
+            </div>
+            
+            <div class="dropdown-group">
+                <div class="currency-box">
+                   
+                    <select id="fromCurrency"></select>
+                </div>
+                <span class="arrow" id="swapCurrencies">⇄</span>
+                <div class="currency-box">
+                    
+                    <select id="toCurrency"></select>
+                </div>
+            </div>
+
+            <button id="convertBtn">Convert</button>
+        </div>
+
+        <h3 id="result">Converted Amount: </h3>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const currencies = [
+                   { code: 'USD', name: 'US Dollar', country: 'us' },
+            { code: 'EUR', name: 'Euro', country: 'eu' },
+           { code: 'GBP', name: 'British Pound', country: 'gb' },
+           { code: 'JPY', name: 'Japanese Yen', country: 'jp' },
+             { code: 'AUD', name: 'Australian Dollar', country: 'au' },
+            { code: 'CAD', name: 'Canadian Dollar', country: 'ca' },
+               { code: 'INR', name: 'Indian Rupee', country: 'in' },
+                { code: 'CNY', name: 'Chinese Yuan', country: 'cn' },
+                  { code: 'NZD', name: 'New Zealand Dollar', country: 'nz' },
+                { code: 'SGD', name: 'Singapore Dollar', country: 'sg' },
+                  { code: 'CHF', name: 'Swiss Franc', country: 'ch' },
+                { code: 'AED', name: 'UAE Dirham', country: 'ae' }
+                ];
+
+
+            const fromCurrency = document.getElementById('fromCurrency');
+            const toCurrency = document.getElementById('toCurrency');
+            const fromFlag = document.getElementById('fromFlag');
+            const toFlag = document.getElementById('toFlag');
+            const amount = document.getElementById('amount');
+            const result = document.getElementById('result');
+            const convertBtn = document.getElementById('convertBtn');
+            const swapBtn = document.getElementById('swapCurrencies');
+            const themeToggle = document.getElementById('themeToggle');
+
+            currencies.forEach(currency => {
+                const option1 = document.createElement('option');
+                option1.value = currency.code;
+                option1.textContent = `${currency.code} - ${currency.name}`;
+                fromCurrency.appendChild(option1);
+
+                const option2 = document.createElement('option');
+                option2.value = currency.code;
+                option2.textContent = `${currency.code} - ${currency.name}`;
+                toCurrency.appendChild(option2);
+            });
+
+            async function convertCurrency() {
+                const from = fromCurrency.value;
+                const to = toCurrency.value;
+                const amt = parseFloat(amount.value);
+
+                result.textContent = 'Converting...';
+
+                const apiKey = "d8c8bdb3421093db81bb020e";
+                const url = `https://v6.exchangerate-api.com/v6/${apiKey}/latest/${from}`;
+                
+                const response = await fetch(url);
+                const data = await response.json();
+
+                const exchangeRate = data.conversion_rates[to];
+                const convertedAmount = amt * exchangeRate;
+
+                result.textContent = `Converted Amount: ${amt.toFixed(2)} ${from} = ${convertedAmount.toFixed(2)} ${to}`;
+            }
+
+            convertBtn.addEventListener('click', convertCurrency);
+            themeToggle.addEventListener('click', () => document.body.classList.toggle('dark-mode'));
+        });
+    </script>
+</body>
+</html>
