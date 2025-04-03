@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Real Time Currency Converter</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.5.0/css/flag-icon.min.css">
     <style>
         :root {
             --primary-color: #6200ee;
@@ -219,6 +220,22 @@
             opacity: 0.8;
         }
 
+        /* Flag styles */
+        .flag-icon {
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        .select2-selection__choice {
+            display: flex;
+            align-items: center;
+        }
+
+        .select2-results__option {
+            display: flex;
+            align-items: center;
+        }
+
         /* Mobile responsiveness */
         @media (max-width: 600px) {
             body {
@@ -272,6 +289,9 @@
             }
         }
     </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
 </head>
 <body>
     <button id="themeToggle">🌙 Dark Mode</button>
@@ -291,7 +311,7 @@
                 </div>
                 <span class="arrow" id="swapCurrencies" title="Swap currencies">⇄</span>
                 <div class="currency-box">
-                    <select id="toCurrency"></select>
+                    <select id="toCurrency" multiple></select>
                 </div>
             </div>
 
@@ -299,26 +319,25 @@
         </div>
 
         <div id="result">
-            <div>Converted Amount: <span id="convertedAmount">0.00</span></div>
-            <div class="rate-info" id="rateInfo">1 USD = 0.00 EUR</div>
+            <ul id="conversionList"></ul>
         </div>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const currencies = [
-                { code: 'USD', name: 'US Dollar' },
-                { code: 'EUR', name: 'Euro' },
-                { code: 'GBP', name: 'British Pound' },
-                { code: 'JPY', name: 'Japanese Yen' },
-                { code: 'AUD', name: 'Australian Dollar' },
-                { code: 'CAD', name: 'Canadian Dollar' },
-                { code: 'INR', name: 'Indian Rupee' },
-                { code: 'CNY', name: 'Chinese Yuan' },
-                { code: 'NZD', name: 'New Zealand Dollar' },
-                { code: 'SGD', name: 'Singapore Dollar' },
-                { code: 'CHF', name: 'Swiss Franc' },
-                { code: 'AED', name: 'UAE Dirham' }
+                { code: 'USD', name: 'US Dollar', country: 'us' },
+                { code: 'EUR', name: 'Euro', country: 'eu' },
+                { code: 'GBP', name: 'British Pound', country: 'gb' },
+                { code: 'JPY', name: 'Japanese Yen', country: 'jp' },
+                { code: 'AUD', name: 'Australian Dollar', country: 'au' },
+                { code: 'CAD', name: 'Canadian Dollar', country: 'ca' },
+                { code: 'INR', name: 'Indian Rupee', country: 'in' },
+                { code: 'CNY', name: 'Chinese Yuan', country: 'cn' },
+                { code: 'NZD', name: 'New Zealand Dollar', country: 'nz' },
+                { code: 'SGD', name: 'Singapore Dollar', country: 'sg' },
+                { code: 'CHF', name: 'Swiss Franc', country: 'ch' },
+                { code: 'AED', name: 'UAE Dirham', country: 'ae' }
             ];
 
             // DOM elements
@@ -330,11 +349,8 @@
             const swapBtn = document.getElementById('swapCurrencies');
             const themeToggle = document.getElementById('themeToggle');
             const result = document.getElementById('result');
-            const convertedAmount = document.getElementById('convertedAmount');
-            const rateInfo = document.getElementById('rateInfo');
 
             // State variables
-            let currentRate = 0;
             let exchangeRates = {};
 
             // Initialize the app
@@ -345,32 +361,45 @@
                 fetchExchangeRates();
             }
 
-            // Populate currency dropdowns
+            // Populate currency dropdowns with flags
             function populateCurrencyDropdowns() {
                 currencies.forEach(currency => {
                     const option1 = document.createElement('option');
                     option1.value = currency.code;
-                    option1.textContent = `${currency.code} - ${currency.name}`;
+                    option1.innerHTML = `<span class="flag-icon flag-icon-${currency.country}"></span> ${currency.code} - ${currency.name}`;
                     fromCurrency.appendChild(option1);
 
                     const option2 = document.createElement('option');
                     option2.value = currency.code;
-                    option2.textContent = `${currency.code} - ${currency.name}`;
+                    option2.innerHTML = `<span class="flag-icon flag-icon-${currency.country}"></span> ${currency.code} - ${currency.name}`;
                     toCurrency.appendChild(option2);
                 });
+
+                // Initialize Select2 with flag template
+                $('#toCurrency').select2({
+                    templateResult: formatCurrency,
+                    templateSelection: formatCurrency
+                });
+            }
+
+            // Custom template for Select2 to display flags
+            function formatCurrency(currency) {
+                if (!currency.id) return currency.text;
+                const country = currencies.find(c => c.code === currency.id).country;
+                return $(`<span><span class="flag-icon flag-icon-${country}"></span> ${currency.text}</span>`);
             }
 
             // Set default currencies
             function setDefaultCurrencies() {
                 fromCurrency.value = 'USD';
-                toCurrency.value = 'EUR';
+                $('#toCurrency').val(['EUR']).trigger('change');
             }
 
             // Fetch exchange rates from API
             async function fetchExchangeRates() {
                 try {
                     const from = fromCurrency.value;
-                    const apiKey = "d8c8bdb3421093db81bb020e";
+                    const apiKey = "d8c8bdb3421093db81bb020e"; // Replace with your actual API key
                     const url = `https://v6.exchangerate-api.com/v6/${apiKey}/latest/${from}`;
                     
                     const response = await fetch(url);
@@ -394,46 +423,44 @@
                 }
             }
 
-            // Convert currency
+            // Convert currency and display with flags
             function updateConversion() {
+                const list = document.getElementById('conversionList');
+                list.innerHTML = '';
                 const from = fromCurrency.value;
-                const to = toCurrency.value;
                 const amt = parseFloat(amount.value) || 0;
-                
-                // Validate input
-                if (amount.value && (isNaN(amt) || amt < 0)) {
-                    amount.classList.add('error');
-                    amountError.style.display = 'block';
-                    return;
-                } else {
-                    amount.classList.remove('error');
-                    amountError.style.display = 'none';
-                }
-                
-                // Check if we have the required rates
-                if (!exchangeRates || !exchangeRates[to]) {
-                    result.innerHTML = 'Exchange rates not available. Please try again.';
-                    result.style.color = 'var(--error-color)';
+                const selectedToCurrencies = $('#toCurrency').val();
+
+                if (!selectedToCurrencies || selectedToCurrencies.length === 0) {
+                    list.innerHTML = '<li>Please select at least one target currency</li>';
                     return;
                 }
-                
-                // Calculate conversion
-                currentRate = exchangeRates[to];
-                const convertedValue = amt * currentRate;
-                
-                // Update UI
-                convertedAmount.textContent = convertedValue.toFixed(2);
-                rateInfo.textContent = `1 ${from} = ${currentRate.toFixed(4)} ${to}`;
-                
-                result.style.color = '';
+
+                const fromCountry = currencies.find(c => c.code === from).country;
+
+                selectedToCurrencies.forEach(to => {
+                    if (exchangeRates && exchangeRates[to]) {
+                        const rate = exchangeRates[to];
+                        const convertedValue = amt * rate;
+                        const toCountry = currencies.find(c => c.code === to).country;
+                        const li = document.createElement('li');
+                        li.innerHTML = `<span class="flag-icon flag-icon-${fromCountry}"></span> ${amt} ${from} = <span class="flag-icon flag-icon-${toCountry}"></span> ${convertedValue.toFixed(2)} ${to} (1 ${from} = ${rate.toFixed(4)} ${to})`;
+                        list.appendChild(li);
+                    }
+                });
             }
 
             // Swap currencies
             function swapCurrencies() {
-                const temp = fromCurrency.value;
-                fromCurrency.value = toCurrency.value;
-                toCurrency.value = temp;
-                fetchExchangeRates();
+                const selectedToCurrencies = $('#toCurrency').val();
+                if (selectedToCurrencies.length === 1) {
+                    const temp = fromCurrency.value;
+                    fromCurrency.value = selectedToCurrencies[0];
+                    $('#toCurrency').val([temp]).trigger('change');
+                    fetchExchangeRates();
+                } else {
+                    alert('Swap is only available when a single "to" currency is selected.');
+                }
             }
 
             // Event listeners
@@ -442,7 +469,6 @@
             amount.addEventListener('input', updateConversion);
             
             convertBtn.addEventListener('click', function() {
-                // Show loading state
                 this.classList.add('loading');
                 setTimeout(() => {
                     this.classList.remove('loading');
@@ -451,7 +477,6 @@
             });
 
             swapBtn.addEventListener('click', function() {
-                // Animate the swap
                 this.style.transform = 'rotate(180deg)';
                 setTimeout(() => {
                     this.style.transform = '';
