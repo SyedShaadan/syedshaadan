@@ -1,497 +1,541 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real Time Currency Converter</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.5.0/css/flag-icon.min.css">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Rubik's Cube Challenge</title>
     <style>
-        :root {
-            --primary-color: #6200ee;
-            --secondary-color: #03dac6;
-            --background-color: #ffffff;
-            --text-color: #000000;
-            --input-bg: #f5f5f5;
-            --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            --error-color: #ff4444;
-        }
+      @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+      
+      body {
+        margin: 0;
+        overflow: hidden;
+        font-family: 'Poppins', sans-serif;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        color: #fff;
+      }
 
-        .dark-mode {
-            --primary-color: #bb86fc;
-            --secondary-color: #03dac6;
-            --background-color: #121212;
-            --text-color: #ffffff;
-            --input-bg: #1e1e1e;
-            --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            --error-color: #ff6666;
-        }
+      #gameContainer {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+      }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--background-color);
-            color: var(--text-color);
-            margin: 0;
-            padding: 20px;
-            text-align: center;
-            transition: background-color 0.3s, color 0.3s;
-        }
+      #controls {
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        padding: 20px;
+        border-radius: 15px;
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        z-index: 100;
+        width: auto;
+        max-width: 90%;
+      }
 
-        #themeToggle {
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            margin-bottom: 20px;
-            font-size: 14px;
-            transition: background 0.3s;
-        }
+      .button-group {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 8px;
+        margin-bottom: 16px;
+      }
 
-        #themeToggle:hover {
-            background: var(--secondary-color);
-        }
+      .action-group {
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+      }
 
-        .container {
-            max-width: 500px;
-            margin: 30px auto;
-            background: var(--background-color);
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: var(--box-shadow);
-            transition: background-color 0.3s;
-        }
+      button {
+        font-family: 'Poppins', sans-serif;
+        padding: 8px 16px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 600;
+        min-width: 40px;
+      }
 
-        h2 {
-            color: var(--primary-color);
-            margin-top: 0;
-        }
+      .move-btn {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+      }
 
-        .converter {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
+      .move-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateY(-2px);
+      }
 
-        .input-group {
-            position: relative;
-        }
+      .action-btn {
+        background: #4CAF50;
+        color: white;
+        padding: 10px 20px;
+      }
 
-        .input-group input {
-            width: 100%;
-            padding: 15px;
-            border: 2px solid var(--primary-color);
-            border-radius: 8px;
-            font-size: 16px;
-            background: var(--input-bg);
-            color: var(--text-color);
-            box-sizing: border-box;
-            text-align: center;
-            transition: border-color 0.3s;
-        }
+      .action-btn:hover {
+        background: #45a049;
+        transform: translateY(-2px);
+      }
 
-        .input-group input:focus {
-            outline: none;
-            border-color: var(--secondary-color);
-        }
+      .action-btn.scramble {
+        background: #2196F3;
+      }
 
-        .input-group input.error {
-            border-color: var(--error-color);
-        }
+      .action-btn.scramble:hover {
+        background: #1e88e5;
+      }
 
-        .error-message {
-            color: var(--error-color);
-            font-size: 14px;
-            margin-top: 5px;
-            display: none;
-        }
+      .action-btn.solve {
+        background: #9C27B0;
+      }
 
-        .dropdown-group {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-        }
+      .action-btn.solve:hover {
+        background: #8e24aa;
+      }
 
-        .currency-box {
-            display: flex;
-            align-items: center;
-            border: 2px solid var(--primary-color);
-            border-radius: 8px;
-            padding: 5px;
-            background: var(--input-bg);
-            flex: 1;
-            transition: border-color 0.3s;
-        }
+      #stats {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+      }
 
-        .currency-box:focus-within {
-            border-color: var(--secondary-color);
-        }
+      .stat-item {
+        margin: 5px 0;
+        font-size: 14px;
+      }
 
-        .currency-box select {
-            flex: 1;
-            padding: 10px;
-            border: none;
-            background: transparent;
-            color: var(--text-color);
-            font-size: 16px;
-            outline: none;
-            cursor: pointer;
-            appearance: none;
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-            background-repeat: no-repeat;
-            background-position: right 8px center;
-            background-size: 16px;
-        }
+      #timer {
+        font-size: 24px;
+        font-weight: 600;
+        color: #4CAF50;
+        margin-bottom: 10px;
+      }
 
-        .arrow {
-            font-size: 24px;
-            color: var(--primary-color);
-            cursor: pointer;
-            padding: 8px;
-            border-radius: 50%;
-            transition: transform 0.3s, background-color 0.3s;
-        }
+      #message {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(76, 175, 80, 0.9);
+        padding: 20px 40px;
+        border-radius: 10px;
+        font-size: 24px;
+        font-weight: 600;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        pointer-events: none;
+      }
 
-        .arrow:hover {
-            background-color: rgba(0,0,0,0.1);
-        }
+      .show-message {
+        opacity: 1 !important;
+      }
 
-        .dark-mode .arrow:hover {
-            background-color: rgba(255,255,255,0.1);
-        }
+      #solutionDisplay {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        max-width: 300px;
+        max-height: 80vh;
+        overflow-y: auto;
+      }
 
-        #convertBtn {
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            padding: 15px;
-            border-radius: 8px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: background 0.3s, transform 0.1s;
-            font-weight: 600;
-        }
-
-        #convertBtn:hover {
-            background: var(--secondary-color);
-        }
-
-        #convertBtn:active {
-            transform: scale(0.98);
-        }
-
-        #convertBtn.loading {
-            position: relative;
-            color: transparent;
-        }
-
-        #convertBtn.loading::after {
-            content: "";
-            position: absolute;
-            width: 20px;
-            height: 20px;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            margin: auto;
-            border: 3px solid transparent;
-            border-top-color: white;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        #result {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 8px;
-            transition: all 0.3s;
-        }
-
-        .rate-info {
-            font-size: 14px;
-            margin-top: 5px;
-            opacity: 0.8;
-        }
-
-        /* Flag styles */
-        .flag-icon {
-            margin-right: 8px;
-            vertical-align: middle;
-        }
-
-        .select2-selection__choice {
-            display: flex;
-            align-items: center;
-        }
-
-        .select2-results__option {
-            display: flex;
-            align-items: center;
-        }
-
-        /* Mobile responsiveness */
-        @media (max-width: 600px) {
-            body {
-                padding: 15px;
-            }
-            
-            .container {
-                padding: 20px;
-                margin: 20px auto;
-                width: 95%;
-            }
-            
-            .dropdown-group {
-                flex-direction: column;
-            }
-            
-            .arrow {
-                transform: rotate(90deg);
-                margin: 10px 0;
-            }
-            
-            .input-group input {
-                padding: 12px;
-                font-size: 15px;
-            }
-            
-            .currency-box select {
-                font-size: 15px;
-                padding: 8px;
-            }
-            
-            #convertBtn {
-                padding: 12px;
-                font-size: 15px;
-            }
-        }
-
-        @media (max-width: 400px) {
-            .container {
-                padding: 15px;
-            }
-            
-            .input-group input {
-                padding: 10px;
-                font-size: 14px;
-            }
-            
-            .currency-box select {
-                font-size: 14px;
-                padding: 6px;
-            }
-        }
+      #solutionMoves {
+        white-space: pre-wrap;
+        font-size: 14px;
+      }
     </style>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
-</head>
-<body>
-    <button id="themeToggle">🌙 Dark Mode</button>
+  </head>
+  <body>
+    <div id="gameContainer">
+      <div id="stats">
+        <div id="timer">00:00</div>
+        <div class="stat-item">Moves: <span id="moveCount">0</span></div>
+        <div class="stat-item">Best Time: <span id="bestTime">--:--</span></div>
+      </div>
 
-    <div class="container">
-        <h2>💰 Real Time Currency Converter</h2>
-        
-        <div class="converter">
-            <div class="input-group">
-                <input type="number" id="amount" placeholder="Enter amount" min="0" step="0.01" autofocus />
-                <div class="error-message" id="amountError">Please enter a valid amount</div>
-            </div>
-            
-            <div class="dropdown-group">
-                <div class="currency-box">
-                    <select id="fromCurrency"></select>
-                </div>
-                <span class="arrow" id="swapCurrencies" title="Swap currencies">⇄</span>
-                <div class="currency-box">
-                    <select id="toCurrency" multiple></select>
-                </div>
-            </div>
-
-            <button id="convertBtn">Convert</button>
+      <div id="controls">
+        <div class="button-group">
+          <button class="move-btn" onclick="enqueueMove('U')">U</button>
+          <button class="move-btn" onclick="enqueueMove('U\'')">U′</button>
+          <button class="move-btn" onclick="enqueueMove('D')">D</button>
+          <button class="move-btn" onclick="enqueueMove('D\'')">D′</button>
+          <button class="move-btn" onclick="enqueueMove('L')">L</button>
+          <button class="move-btn" onclick="enqueueMove('L\'')">L′</button>
+          <button class="move-btn" onclick="enqueueMove('R')">R</button>
+          <button class="move-btn" onclick="enqueueMove('R\'')">R′</button>
+          <button class="move-btn" onclick="enqueueMove('F')">F</button>
+          <button class="move-btn" onclick="enqueueMove('F\'')">F′</button>
+          <button class="move-btn" onclick="enqueueMove('B')">B</button>
+          <button class="move-btn" onclick="enqueueMove('B\'')">B′</button>
         </div>
-
-        <div id="result">
-            <ul id="conversionList"></ul>
+        <div class="action-group">
+          <button class="action-btn scramble" onclick="startNewGame()">New Game</button>
+          <button class="action-btn" onclick="resetCube()">Reset</button>
+          <button class="action-btn solve" onclick="solveCube()">Solve</button>
         </div>
+      </div>
+
+      <div id="message">Solved! 🎉</div>
+      <div id="solutionDisplay">
+        <div>Solution Moves:</div>
+        <div id="solutionMoves"></div>
+      </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const currencies = [
-                { code: 'USD', name: 'US Dollar', country: 'us' },
-                { code: 'EUR', name: 'Euro', country: 'eu' },
-                { code: 'GBP', name: 'British Pound', country: 'gb' },
-                { code: 'JPY', name: 'Japanese Yen', country: 'jp' },
-                { code: 'AUD', name: 'Australian Dollar', country: 'au' },
-                { code: 'CAD', name: 'Canadian Dollar', country: 'ca' },
-                { code: 'INR', name: 'Indian Rupee', country: 'in' },
-                { code: 'CNY', name: 'Chinese Yuan', country: 'cn' },
-                { code: 'NZD', name: 'New Zealand Dollar', country: 'nz' },
-                { code: 'SGD', name: 'Singapore Dollar', country: 'sg' },
-                { code: 'CHF', name: 'Swiss Franc', country: 'ch' },
-                { code: 'AED', name: 'UAE Dirham', country: 'ae' }
-            ];
+      let scene, camera, renderer, controls;
+      let cubeGroup;
+      let cubies = [];
+      let moveQueue = [];
+      let currentAnimation = null;
+      let moveHistory = [];
+      let isReversing = false;
+      let gameActive = false;
+      let startTime = 0;
+      let moveCount = 0;
+      let bestTime = localStorage.getItem('bestTime') || Infinity;
+      let isSolving = false;
 
-            // DOM elements
-            const fromCurrency = document.getElementById('fromCurrency');
-            const toCurrency = document.getElementById('toCurrency');
-            const amount = document.getElementById('amount');
-            const amountError = document.getElementById('amountError');
-            const convertBtn = document.getElementById('convertBtn');
-            const swapBtn = document.getElementById('swapCurrencies');
-            const themeToggle = document.getElementById('themeToggle');
-            const result = document.getElementById('result');
+      const moveDuration = 300;
+      const rotationSpeed = (Math.PI / 2) / moveDuration;
+      
+      let previousTime = performance.now();
 
-            // State variables
-            let exchangeRates = {};
+      init();
+      animate();
 
-            // Initialize the app
-            function init() {
-                populateCurrencyDropdowns();
-                setDefaultCurrencies();
-                amount.focus();
-                fetchExchangeRates();
+      function init() {
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1a1a2e);
+
+        camera = new THREE.PerspectiveCamera(
+          45,
+          window.innerWidth / window.innerHeight,
+          0.1,
+          1000
+        );
+        camera.position.set(5, 5, 5);
+        camera.lookAt(0, 0, 0);
+
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.getElementById('gameContainer').appendChild(renderer.domElement);
+
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(5, 10, 7.5);
+        directionalLight.castShadow = true;
+        scene.add(directionalLight);
+
+        cubeGroup = new THREE.Group();
+        scene.add(cubeGroup);
+
+        for (let x = -1; x <= 1; x++) {
+          for (let y = -1; y <= 1; y++) {
+            for (let z = -1; z <= 1; z++) {
+              const cubie = createCubie(x, y, z);
+              cubie.position.set(x, y, z);
+              cubie.castShadow = true;
+              cubie.receiveShadow = true;
+              cubeGroup.add(cubie);
+              cubies.push(cubie);
             }
+          }
+        }
 
-            // Populate currency dropdowns with flags
-            function populateCurrencyDropdowns() {
-                currencies.forEach(currency => {
-                    const option1 = document.createElement('option');
-                    option1.value = currency.code;
-                    option1.innerHTML = `<span class="flag-icon flag-icon-${currency.country}"></span> ${currency.code} - ${currency.name}`;
-                    fromCurrency.appendChild(option1);
+        cubies.forEach((cubie) => {
+          let worldPos = new THREE.Vector3();
+          cubie.getWorldPosition(worldPos);
+          cubie.userData.solvedPosition = worldPos.clone();
 
-                    const option2 = document.createElement('option');
-                    option2.value = currency.code;
-                    option2.innerHTML = `<span class="flag-icon flag-icon-${currency.country}"></span> ${currency.code} - ${currency.name}`;
-                    toCurrency.appendChild(option2);
-                });
-
-                // Initialize Select2 with flag template
-                $('#toCurrency').select2({
-                    templateResult: formatCurrency,
-                    templateSelection: formatCurrency
-                });
-            }
-
-            // Custom template for Select2 to display flags
-            function formatCurrency(currency) {
-                if (!currency.id) return currency.text;
-                const country = currencies.find(c => c.code === currency.id).country;
-                return $(`<span><span class="flag-icon flag-icon-${country}"></span> ${currency.text}</span>`);
-            }
-
-            // Set default currencies
-            function setDefaultCurrencies() {
-                fromCurrency.value = 'USD';
-                $('#toCurrency').val(['EUR']).trigger('change');
-            }
-
-            // Fetch exchange rates from API
-            async function fetchExchangeRates() {
-                try {
-                    const from = fromCurrency.value;
-                    const apiKey = "d8c8bdb3421093db81bb020e"; // Replace with your actual API key
-                    const url = `https://v6.exchangerate-api.com/v6/${apiKey}/latest/${from}`;
-                    
-                    const response = await fetch(url);
-                    
-                    if (!response.ok) {
-                        throw new Error('Failed to fetch exchange rates');
-                    }
-                    
-                    const data = await response.json();
-                    
-                    if (data.result === 'error') {
-                        throw new Error(data['error-type']);
-                    }
-                    
-                    exchangeRates = data.conversion_rates;
-                    updateConversion();
-                } catch (error) {
-                    console.error('Error fetching exchange rates:', error);
-                    result.innerHTML = 'Failed to load exchange rates. Please try again later.';
-                    result.style.color = 'var(--error-color)';
-                }
-            }
-
-            // Convert currency and display with flags
-            function updateConversion() {
-                const list = document.getElementById('conversionList');
-                list.innerHTML = '';
-                const from = fromCurrency.value;
-                const amt = parseFloat(amount.value) || 0;
-                const selectedToCurrencies = $('#toCurrency').val();
-
-                if (!selectedToCurrencies || selectedToCurrencies.length === 0) {
-                    list.innerHTML = '<li>Please select at least one target currency</li>';
-                    return;
-                }
-
-                const fromCountry = currencies.find(c => c.code === from).country;
-
-                selectedToCurrencies.forEach(to => {
-                    if (exchangeRates && exchangeRates[to]) {
-                        const rate = exchangeRates[to];
-                        const convertedValue = amt * rate;
-                        const toCountry = currencies.find(c => c.code === to).country;
-                        const li = document.createElement('li');
-                        li.innerHTML = `<span class="flag-icon flag-icon-${fromCountry}"></span> ${amt} ${from} = <span class="flag-icon flag-icon-${toCountry}"></span> ${convertedValue.toFixed(2)} ${to} (1 ${from} = ${rate.toFixed(4)} ${to})`;
-                        list.appendChild(li);
-                    }
-                });
-            }
-
-            // Swap currencies
-            function swapCurrencies() {
-                const selectedToCurrencies = $('#toCurrency').val();
-                if (selectedToCurrencies.length === 1) {
-                    const temp = fromCurrency.value;
-                    fromCurrency.value = selectedToCurrencies[0];
-                    $('#toCurrency').val([temp]).trigger('change');
-                    fetchExchangeRates();
-                } else {
-                    alert('Swap is only available when a single "to" currency is selected.');
-                }
-            }
-
-            // Event listeners
-            fromCurrency.addEventListener('change', fetchExchangeRates);
-            toCurrency.addEventListener('change', updateConversion);
-            amount.addEventListener('input', updateConversion);
-            
-            convertBtn.addEventListener('click', function() {
-                this.classList.add('loading');
-                setTimeout(() => {
-                    this.classList.remove('loading');
-                    updateConversion();
-                }, 300);
-            });
-
-            swapBtn.addEventListener('click', function() {
-                this.style.transform = 'rotate(180deg)';
-                setTimeout(() => {
-                    this.style.transform = '';
-                    swapCurrencies();
-                }, 300);
-            });
-
-            themeToggle.addEventListener('click', function() {
-                document.body.classList.toggle('dark-mode');
-                this.textContent = document.body.classList.contains('dark-mode') ? '☀️ Light Mode' : '🌙 Dark Mode';
-            });
-
-            // Initialize the app
-            init();
+          let worldQuat = new THREE.Quaternion();
+          cubie.getWorldQuaternion(worldQuat);
+          cubie.userData.solvedQuaternion = worldQuat.clone();
         });
+
+        window.addEventListener("resize", onWindowResize, false);
+
+        if (bestTime !== Infinity) {
+          document.getElementById('bestTime').textContent = formatTime(bestTime);
+        }
+      }
+
+      function createCubie(x, y, z) {
+        const cubieSize = 0.95;
+        const geometry = new THREE.BoxGeometry(cubieSize, cubieSize, cubieSize);
+        
+        const colors = {
+          right: 0xff3b30,
+          left: 0xff9500,
+          top: 0xffffff,
+          bottom: 0xffcd00,
+          front: 0x007aff,
+          back: 0x4cd964
+        };
+
+        const materials = [
+          new THREE.MeshPhongMaterial({ color: x === 1 ? colors.right : 0x1a1a1a, shininess: 50 }),
+          new THREE.MeshPhongMaterial({ color: x === -1 ? colors.left : 0x1a1a1a, shininess: 50 }),
+          new THREE.MeshPhongMaterial({ color: y === 1 ? colors.top : 0x1a1a1a, shininess: 50 }),
+          new THREE.MeshPhongMaterial({ color: y === -1 ? colors.bottom : 0x1a1a1a, shininess: 50 }),
+          new THREE.MeshPhongMaterial({ color: z === 1 ? colors.front : 0x1a1a1a, shininess: 50 }),
+          new THREE.MeshPhongMaterial({ color: z === -1 ? colors.back : 0x1a1a1a, shininess: 50 })
+        ];
+
+        return new THREE.Mesh(geometry, materials);
+      }
+
+      function animate() {
+        requestAnimationFrame(animate);
+        let currentTime = performance.now();
+        let deltaTime = currentTime - previousTime;
+        previousTime = currentTime;
+
+        if (currentAnimation) {
+          updateAnimation(deltaTime);
+        } else if (moveQueue.length > 0) {
+          const nextMove = moveQueue.shift();
+          performMove(nextMove);
+        }
+
+        if (gameActive) {
+          const elapsed = Math.floor((Date.now() - startTime) / 1000);
+          document.getElementById('timer').textContent = formatTime(elapsed);
+        }
+
+        controls.update();
+        renderer.render(scene, camera);
+      }
+
+      function updateAnimation(deltaTime) {
+        if (!currentAnimation) return;
+        const { pivot, axis, targetAngle } = currentAnimation;
+        let angleStep = rotationSpeed * deltaTime;
+        if (Math.abs(currentAnimation.accumulatedAngle + angleStep) > Math.abs(targetAngle)) {
+          angleStep = targetAngle - currentAnimation.accumulatedAngle;
+        }
+        pivot.rotateOnAxis(axis, angleStep);
+        currentAnimation.accumulatedAngle += angleStep;
+
+        if (Math.abs(currentAnimation.accumulatedAngle) >= Math.abs(targetAngle) - 0.001) {
+          finalizeMove(pivot);
+          currentAnimation = null;
+          
+          if (gameActive && isCubeSolved() && !isSolving) {
+            onPuzzleSolved();
+          }
+        }
+      }
+
+      function finalizeMove(pivot) {
+        pivot.updateMatrixWorld(true);
+        let children = pivot.children.slice();
+        children.forEach((cubie) => {
+          cubie.applyMatrix4(pivot.matrixWorld);
+          cubeGroup.add(cubie);
+          pivot.remove(cubie);
+        });
+        cubeGroup.remove(pivot);
+      }
+
+      function enqueueMove(move) {
+        // Removed gameActive check to allow moves anytime
+        if (isSolving) return; // Still prevent moves during solving
+        moveQueue.push(move);
+        moveCount++;
+        document.getElementById('moveCount').textContent = moveCount;
+      }
+
+      function performMove(move) {
+        let axis, conditionFunc;
+        const threshold = 0.5;
+        let angle = move.includes("'") ? -Math.PI / 2 : Math.PI / 2;
+
+        switch (move[0]) {
+          case "U": axis = new THREE.Vector3(0, 1, 0); conditionFunc = (pos) => pos.y > threshold; break;
+          case "D": axis = new THREE.Vector3(0, 1, 0); conditionFunc = (pos) => pos.y < -threshold; break;
+          case "L": axis = new THREE.Vector3(1, 0, 0); conditionFunc = (pos) => pos.x < -threshold; break;
+          case "R": axis = new THREE.Vector3(1, 0, 0); conditionFunc = (pos) => pos.x > threshold; break;
+          case "F": axis = new THREE.Vector3(0, 0, 1); conditionFunc = (pos) => pos.z > threshold; break;
+          case "B": axis = new THREE.Vector3(0, 0, 1); conditionFunc = (pos) => pos.z < -threshold; break;
+          default: return;
+        }
+
+        const pivot = new THREE.Group();
+        cubeGroup.add(pivot);
+
+        const selectedCubies = [];
+        cubeGroup.children.forEach((child) => {
+          if (child.isMesh) {
+            let pos = new THREE.Vector3();
+            child.getWorldPosition(pos);
+            if (conditionFunc(pos)) {
+              selectedCubies.push(child);
+            }
+          }
+        });
+
+        selectedCubies.forEach((cubie) => {
+          cubeGroup.remove(cubie);
+          pivot.add(cubie);
+        });
+
+        currentAnimation = {
+          pivot: pivot,
+          axis: axis,
+          targetAngle: angle,
+          accumulatedAngle: 0,
+          moveName: move,
+          startTime: performance.now(),
+        };
+
+        if (!isReversing && !isSolving) {
+          moveHistory.push(move);
+        }
+      }
+
+      function startNewGame() {
+        moveQueue = [];
+        moveHistory = [];
+        moveCount = 0;
+        document.getElementById('moveCount').textContent = '0';
+        document.getElementById('solutionMoves').textContent = '';
+        
+        const moves = ["U", "U'", "D", "D'", "L", "L'", "R", "R'", "F", "F'", "B", "B'"];
+        const scrambleCount = 20;
+        for (let i = 0; i < scrambleCount; i++) {
+          const randomMove = moves[Math.floor(Math.random() * moves.length)];
+          moveQueue.push(randomMove);
+        }
+        
+        startTime = Date.now();
+        gameActive = true;
+        isSolving = false;
+        
+        document.getElementById('message').classList.remove('show-message');
+      }
+
+      function resetCube() {
+        gameActive = false;
+        isSolving = false;
+        
+        moveQueue = [];
+        moveHistory = [];
+        moveCount = 0;
+        document.getElementById('moveCount').textContent = '0';
+        document.getElementById('timer').textContent = '00:00';
+        document.getElementById('solutionMoves').textContent = '';
+        
+        cubies.forEach((cubie) => {
+          cubie.position.copy(cubie.userData.solvedPosition);
+          cubie.quaternion.copy(cubie.userData.solvedQuaternion);
+        });
+        
+        document.getElementById('message').classList.remove('show-message');
+      }
+
+      function solveCube() {
+        if (isSolving) return;
+        isSolving = true;
+        gameActive = false;
+        
+        const solutionMoves = moveHistory.slice().reverse().map(move => {
+          return move.includes("'") ? move[0] : move + "'";
+        });
+        
+        document.getElementById('solutionMoves').textContent = solutionMoves.join('\n');
+        
+        solutionMoves.forEach((move, index) => {
+          setTimeout(() => {
+            moveQueue.push(move);
+            if (index === solutionMoves.length - 1) {
+              setTimeout(() => {
+                isSolving = false;
+              }, moveDuration);
+            }
+          }, index * (moveDuration + 100));
+        });
+      }
+
+      function onPuzzleSolved() {
+        if (!gameActive) return; // Only trigger when game is active
+        gameActive = false;
+        const solveTime = Math.floor((Date.now() - startTime) / 1000);
+        
+        if (solveTime < bestTime) {
+          bestTime = solveTime;
+          localStorage.setItem('bestTime', bestTime);
+          document.getElementById('bestTime').textContent = formatTime(bestTime);
+        }
+        
+        const message = document.getElementById('message');
+        message.classList.add('show-message');
+        
+        setTimeout(() => {
+          message.classList.remove('show-message');
+        }, 3000);
+      }
+
+      function formatTime(seconds) {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+      }
+
+      function isCubeSolved() {
+        const posTolerance = 0.1;
+        const angleTolerance = 0.1;
+        
+        for (let cubie of cubies) {
+          let currentPos = new THREE.Vector3();
+          cubie.getWorldPosition(currentPos);
+          const solvedPos = cubie.userData.solvedPosition;
+          
+          if (currentPos.distanceTo(solvedPos) > posTolerance) {
+            return false;
+          }
+          
+          let currentQuat = new THREE.Quaternion();
+          cubie.getWorldQuaternion(currentQuat);
+          const solvedQuat = cubie.userData.solvedQuaternion;
+          
+          if (currentQuat.angleTo(solvedQuat) > angleTolerance) {
+            return false;
+          }
+        }
+        return true;
+      }
+
+      function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      }
     </script>
-</body>
+  </body>
 </html>
