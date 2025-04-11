@@ -97,6 +97,14 @@
         background: #8e24aa;
       }
 
+      .action-btn.toggle-view {
+        background: #FF9800;
+      }
+
+      .action-btn.toggle-view:hover {
+        background: #F57C00;
+      }
+
       #stats {
         position: absolute;
         top: 20px;
@@ -107,6 +115,7 @@
         border-radius: 10px;
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
         border: 1px solid rgba(255, 255, 255, 0.18);
+        z-index: 100;
       }
 
       .stat-item {
@@ -134,6 +143,7 @@
         opacity: 0;
         transition: opacity 0.3s ease;
         pointer-events: none;
+        z-index: 200;
       }
 
       .show-message {
@@ -153,11 +163,56 @@
         max-width: 300px;
         max-height: 80vh;
         overflow-y: auto;
+        z-index: 100;
       }
 
       #solutionMoves {
         white-space: pre-wrap;
         font-size: 14px;
+      }
+
+      #cube2D {
+        position: absolute;
+        top: 5vh; /* Responsive, was 250px */
+        left: 2vw; /* Responsive, was 20px */
+        width: 80vw; /* Responsive width */
+        height: 90vh; /* Responsive height */
+        max-width: 1200px; /* Cap for large screens */
+        max-height: 1500px; /* Cap for large screens */
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-radius: 10px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        z-index: 10;
+        display: none;
+        transition: all 0.3s ease;
+        cursor: pointer;
+      }
+
+      #cube2D.active {
+        display: block;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
+
+      #cube2D.fullscreen {
+        width: 100vw;
+        height: 100vh;
+        top: 0;
+        left: 0;
+        transform: none;
+        border-radius: 0;
+        z-index: 150;
+      }
+
+      canvas.three-canvas {
+        display: block;
+      }
+
+      canvas.three-canvas.hidden {
+        display: none;
       }
     </style>
   </head>
@@ -188,6 +243,7 @@
           <button class="action-btn scramble" onclick="startNewGame()">New Game</button>
           <button class="action-btn" onclick="resetCube()">Reset</button>
           <button class="action-btn solve" onclick="solveCube()">Solve</button>
+          <button class="action-btn toggle-view" onclick="toggleView()">Switch to 2D</button>
         </div>
       </div>
 
@@ -196,6 +252,7 @@
         <div>Solution Moves:</div>
         <div id="solutionMoves"></div>
       </div>
+      <canvas id="cube2D"></canvas> <!-- No fixed width/height -->
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -213,11 +270,36 @@
       let moveCount = 0;
       let bestTime = localStorage.getItem('bestTime') || Infinity;
       let isSolving = false;
+      let is3DView = true;
+      let isFullscreen = false;
 
       const moveDuration = 300;
       const rotationSpeed = (Math.PI / 2) / moveDuration;
       
       let previousTime = performance.now();
+
+      // 2D Cube State
+      const colors = {
+        U: '#ffffff', // White (top)
+        D: '#ffcd00', // Yellow (bottom)
+        L: '#ff9500', // Orange (left)
+        R: '#ff3b30', // Red (right)
+        F: '#007aff', // Blue (front)
+        B: '#4cd964', // Green (back)
+        none: '#1a1a1a' // Black (no sticker)
+      };
+
+      let cubeState = {
+        U: Array(9).fill('U'),
+        D: Array(9).fill('D'),
+        L: Array(9).fill('L'),
+        R: Array(9).fill('R'),
+        F: Array(9).fill('F'),
+        B: Array(9).fill('B')
+      };
+
+      const canvas2D = document.getElementById('cube2D');
+      const ctx = canvas2D.getContext('2d');
 
       init();
       animate();
@@ -238,6 +320,7 @@
         renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
+        renderer.domElement.classList.add('three-canvas');
         document.getElementById('gameContainer').appendChild(renderer.domElement);
 
         controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -279,6 +362,11 @@
         });
 
         window.addEventListener("resize", onWindowResize, false);
+        canvas2D.addEventListener('click', toggleFullscreen);
+
+        // Set initial 2D canvas size based on CSS
+        resize2DCanvas();
+        draw2DNet();
 
         if (bestTime !== Infinity) {
           document.getElementById('bestTime').textContent = formatTime(bestTime);
@@ -289,7 +377,7 @@
         const cubieSize = 0.95;
         const geometry = new THREE.BoxGeometry(cubieSize, cubieSize, cubieSize);
         
-        const colors = {
+        const colors3D = {
           right: 0xff3b30,
           left: 0xff9500,
           top: 0xffffff,
@@ -299,15 +387,340 @@
         };
 
         const materials = [
-          new THREE.MeshPhongMaterial({ color: x === 1 ? colors.right : 0x1a1a1a, shininess: 50 }),
-          new THREE.MeshPhongMaterial({ color: x === -1 ? colors.left : 0x1a1a1a, shininess: 50 }),
-          new THREE.MeshPhongMaterial({ color: y === 1 ? colors.top : 0x1a1a1a, shininess: 50 }),
-          new THREE.MeshPhongMaterial({ color: y === -1 ? colors.bottom : 0x1a1a1a, shininess: 50 }),
-          new THREE.MeshPhongMaterial({ color: z === 1 ? colors.front : 0x1a1a1a, shininess: 50 }),
-          new THREE.MeshPhongMaterial({ color: z === -1 ? colors.back : 0x1a1a1a, shininess: 50 })
+          new THREE.MeshPhongMaterial({ color: x === 1 ? colors3D.right : 0x1a1a1a, shininess: 50 }),
+          new THREE.MeshPhongMaterial({ color: x === -1 ? colors3D.left : 0x1a1a1a, shininess: 50 }),
+          new THREE.MeshPhongMaterial({ color: y === 1 ? colors3D.top : 0x1a1a1a, shininess: 50 }),
+          new THREE.MeshPhongMaterial({ color: y === -1 ? colors3D.bottom : 0x1a1a1a, shininess: 50 }),
+          new THREE.MeshPhongMaterial({ color: z === 1 ? colors3D.front : 0x1a1a1a, shininess: 50 }),
+          new THREE.MeshPhongMaterial({ color: z === -1 ? colors3D.back : 0x1a1a1a, shininess: 50 })
         ];
 
         return new THREE.Mesh(geometry, materials);
+      }
+
+      function resize2DCanvas() {
+        const style = window.getComputedStyle(canvas2D);
+        canvas2D.width = parseFloat(style.width);
+        canvas2D.height = parseFloat(style.height);
+      }
+
+      function draw2DNet() {
+        const canvasWidth = canvas2D.width;
+        const canvasHeight = canvas2D.height;
+        const squareSize = Math.min(canvasWidth, canvasHeight) / 12; // Dynamic base size
+        const gap = squareSize / 6;
+        const faceSize = squareSize * 3 + gap * 2;
+        const totalWidth = 4 * faceSize + 2 * gap; // L, U/F/R, B
+        const totalHeight = 3 * faceSize + 2 * gap; // U, F, D
+        const offsetX = (canvasWidth - totalWidth) / 2;
+        const offsetY = (canvasHeight - totalHeight) / 2;
+
+        ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+        ctx.font = `${squareSize / 2}px Poppins`;
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+
+        const facePositions = {
+          U: { x: offsetX + faceSize, y: offsetY, label: 'U' },
+          F: { x: offsetX + faceSize, y: offsetY + faceSize + gap, label: 'F' },
+          D: { x: offsetX + faceSize, y: offsetY + 2 * (faceSize + gap), label: 'D' },
+          L: { x: offsetX, y: offsetY + faceSize + gap, label: 'L' },
+          R: { x: offsetX + 2 * faceSize + gap, y: offsetY + faceSize + gap, label: 'R' },
+          B: { x: offsetX + 3 * faceSize + 2 * gap, y: offsetY + faceSize + gap, label: 'B' }
+        };
+
+        for (const face in cubeState) {
+          const pos = facePositions[face];
+          for (let i = 0; i < 9; i++) {
+            const row = Math.floor(i / 3);
+            const col = i % 3;
+            ctx.fillStyle = colors[cubeState[face][i]];
+            ctx.fillRect(
+              pos.x + col * (squareSize + gap),
+              pos.y + row * (squareSize + gap),
+              squareSize,
+              squareSize
+            );
+          }
+          ctx.fillStyle = '#ffffff';
+          ctx.fillText(pos.label, pos.x + faceSize / 2, pos.y - gap);
+        }
+      }
+
+      function toggleFullscreen() {
+        if (!is3DView) {
+          isFullscreen = !isFullscreen;
+          if (isFullscreen) {
+            canvas2D.classList.add('fullscreen');
+            canvas2D.width = window.innerWidth;
+            canvas2D.height = window.innerHeight;
+          } else {
+            canvas2D.classList.remove('fullscreen');
+            resize2DCanvas(); // Use CSS-driven size
+          }
+          draw2DNet();
+        }
+      }
+
+      function updateCubeState(move) {
+        const newState = JSON.parse(JSON.stringify(cubeState));
+
+        if (move === "U") {
+          newState.U = [
+            cubeState.U[6], cubeState.U[3], cubeState.U[0],
+            cubeState.U[7], cubeState.U[4], cubeState.U[1],
+            cubeState.U[8], cubeState.U[5], cubeState.U[2]
+          ];
+          const temp = [cubeState.F[0], cubeState.F[1], cubeState.F[2]];
+          newState.F[0] = cubeState.L[0];
+          newState.F[1] = cubeState.L[1];
+          newState.F[2] = cubeState.L[2];
+          newState.L[0] = cubeState.B[0];
+          newState.L[1] = cubeState.B[1];
+          newState.L[2] = cubeState.B[2];
+          newState.B[0] = cubeState.R[0];
+          newState.B[1] = cubeState.R[1];
+          newState.B[2] = cubeState.R[2];
+          newState.R[0] = temp[0];
+          newState.R[1] = temp[1];
+          newState.R[2] = temp[2];
+        } else if (move === "U'") {
+          newState.U = [
+            cubeState.U[2], cubeState.U[5], cubeState.U[8],
+            cubeState.U[1], cubeState.U[4], cubeState.U[7],
+            cubeState.U[0], cubeState.U[3], cubeState.U[6]
+          ];
+          const temp = [cubeState.F[0], cubeState.F[1], cubeState.F[2]];
+          newState.F[0] = cubeState.R[0];
+          newState.F[1] = cubeState.R[1];
+          newState.F[2] = cubeState.R[2];
+          newState.R[0] = cubeState.B[0];
+          newState.R[1] = cubeState.B[1];
+          newState.R[2] = cubeState.B[2];
+          newState.B[0] = cubeState.L[0];
+          newState.B[1] = cubeState.L[1];
+          newState.B[2] = cubeState.L[2];
+          newState.L[0] = temp[0];
+          newState.L[1] = temp[1];
+          newState.L[2] = temp[2];
+        } else if (move === "D") {
+          newState.D = [
+            cubeState.D[6], cubeState.D[3], cubeState.D[0],
+            cubeState.D[7], cubeState.D[4], cubeState.D[1],
+            cubeState.D[8], cubeState.D[5], cubeState.D[2]
+          ];
+          const temp = [cubeState.F[6], cubeState.F[7], cubeState.F[8]];
+          newState.F[6] = cubeState.R[6];
+          newState.F[7] = cubeState.R[7];
+          newState.F[8] = cubeState.R[8];
+          newState.R[6] = cubeState.B[6];
+          newState.R[7] = cubeState.B[7];
+          newState.R[8] = cubeState.B[8];
+          newState.B[6] = cubeState.L[6];
+          newState.B[7] = cubeState.L[7];
+          newState.B[8] = cubeState.L[8];
+          newState.L[6] = temp[0];
+          newState.L[7] = temp[1];
+          newState.L[8] = temp[2];
+        } else if (move === "D'") {
+          newState.D = [
+            cubeState.D[2], cubeState.D[5], cubeState.D[8],
+            cubeState.D[1], cubeState.D[4], cubeState.D[7],
+            cubeState.D[0], cubeState.D[3], cubeState.D[6]
+          ];
+          const temp = [cubeState.F[6], cubeState.F[7], cubeState.F[8]];
+          newState.F[6] = cubeState.L[6];
+          newState.F[7] = cubeState.L[7];
+          newState.F[8] = cubeState.L[8];
+          newState.L[6] = cubeState.B[6];
+          newState.L[7] = cubeState.B[7];
+          newState.L[8] = cubeState.B[8];
+          newState.B[6] = cubeState.R[6];
+          newState.B[7] = cubeState.R[7];
+          newState.B[8] = cubeState.R[8];
+          newState.R[6] = temp[0];
+          newState.R[7] = temp[1];
+          newState.R[8] = temp[2];
+        } else if (move === "L") {
+          newState.L = [
+            cubeState.L[6], cubeState.L[3], cubeState.L[0],
+            cubeState.L[7], cubeState.L[4], cubeState.L[1],
+            cubeState.L[8], cubeState.L[5], cubeState.L[2]
+          ];
+          const temp = [cubeState.F[0], cubeState.F[3], cubeState.F[6]];
+          newState.F[0] = cubeState.D[0];
+          newState.F[3] = cubeState.D[3];
+          newState.F[6] = cubeState.D[6];
+          newState.D[0] = cubeState.B[8];
+          newState.D[3] = cubeState.B[5];
+          newState.D[6] = cubeState.B[2];
+          newState.B[8] = cubeState.U[0];
+          newState.B[5] = cubeState.U[3];
+          newState.B[2] = cubeState.U[6];
+          newState.U[0] = temp[0];
+          newState.U[3] = temp[1];
+          newState.U[6] = temp[2];
+        } else if (move === "L'") {
+          newState.L = [
+            cubeState.L[2], cubeState.L[5], cubeState.L[8],
+            cubeState.L[1], cubeState.L[4], cubeState.L[7],
+            cubeState.L[0], cubeState.L[3], cubeState.L[6]
+          ];
+          const temp = [cubeState.F[0], cubeState.F[3], cubeState.F[6]];
+          newState.F[0] = cubeState.U[0];
+          newState.F[3] = cubeState.U[3];
+          newState.F[6] = cubeState.U[6];
+          newState.U[0] = cubeState.B[8];
+          newState.U[3] = cubeState.B[5];
+          newState.U[6] = cubeState.B[2];
+          newState.B[8] = cubeState.D[0];
+          newState.B[5] = cubeState.D[3];
+          newState.B[2] = cubeState.D[6];
+          newState.D[0] = temp[0];
+          newState.D[3] = temp[1];
+          newState.D[6] = temp[2];
+        } else if (move === "R") {
+          newState.R = [
+            cubeState.R[6], cubeState.R[3], cubeState.R[0],
+            cubeState.R[7], cubeState.R[4], cubeState.R[1],
+            cubeState.R[8], cubeState.R[5], cubeState.R[2]
+          ];
+          const temp = [cubeState.F[2], cubeState.F[5], cubeState.F[8]];
+          newState.F[2] = cubeState.U[2];
+          newState.F[5] = cubeState.U[5];
+          newState.F[8] = cubeState.U[8];
+          newState.U[2] = cubeState.B[6];
+          newState.U[5] = cubeState.B[3];
+          newState.U[8] = cubeState.B[0];
+          newState.B[6] = cubeState.D[2];
+          newState.B[3] = cubeState.D[5];
+          newState.B[0] = cubeState.D[8];
+          newState.D[2] = temp[0];
+          newState.D[5] = temp[1];
+          newState.D[8] = temp[2];
+        } else if (move === "R'") {
+          newState.R = [
+            cubeState.R[2], cubeState.R[5], cubeState.R[8],
+            cubeState.R[1], cubeState.R[4], cubeState.R[7],
+            cubeState.R[0], cubeState.R[3], cubeState.R[6]
+          ];
+          const temp = [cubeState.F[2], cubeState.F[5], cubeState.F[8]];
+          newState.F[2] = cubeState.D[2];
+          newState.F[5] = cubeState.D[5];
+          newState.F[8] = cubeState.D[8];
+          newState.D[2] = cubeState.B[6];
+          newState.D[5] = cubeState.B[3];
+          newState.D[8] = cubeState.B[0];
+          newState.B[6] = cubeState.U[2];
+          newState.B[3] = cubeState.U[5];
+          newState.B[0] = cubeState.U[8];
+          newState.U[2] = temp[0];
+          newState.U[5] = temp[1];
+          newState.U[8] = temp[2];
+        } else if (move === "F") {
+          newState.F = [
+            cubeState.F[6], cubeState.F[3], cubeState.F[0],
+            cubeState.F[7], cubeState.F[4], cubeState.F[1],
+            cubeState.F[8], cubeState.F[5], cubeState.F[2]
+          ];
+          const temp = [cubeState.U[6], cubeState.U[7], cubeState.U[8]];
+          newState.U[6] = cubeState.L[8];
+          newState.U[7] = cubeState.L[5];
+          newState.U[8] = cubeState.L[2];
+          newState.L[8] = cubeState.D[2];
+          newState.L[5] = cubeState.D[1];
+          newState.L[2] = cubeState.D[0];
+          newState.D[2] = cubeState.R[0];
+          newState.D[1] = cubeState.R[3];
+          newState.D[0] = cubeState.R[6];
+          newState.R[0] = temp[0];
+          newState.R[3] = temp[1];
+          newState.R[6] = temp[2];
+        } else if (move === "F'") {
+          newState.F = [
+            cubeState.F[2], cubeState.F[5], cubeState.F[8],
+            cubeState.F[1], cubeState.F[4], cubeState.F[7],
+            cubeState.F[0], cubeState.F[3], cubeState.F[6]
+          ];
+          const temp = [cubeState.U[6], cubeState.U[7], cubeState.U[8]];
+          newState.U[6] = cubeState.R[0];
+          newState.U[7] = cubeState.R[3];
+          newState.U[8] = cubeState.R[6];
+          newState.R[0] = cubeState.D[2];
+          newState.R[3] = cubeState.D[1];
+          newState.R[6] = cubeState.D[0];
+          newState.D[2] = cubeState.L[8];
+          newState.D[1] = cubeState.L[5];
+          newState.D[0] = cubeState.L[2];
+          newState.L[8] = temp[0];
+          newState.L[5] = temp[1];
+          newState.L[2] = temp[2];
+        } else if (move === "B") {
+          newState.B = [
+            cubeState.B[6], cubeState.B[3], cubeState.B[0],
+            cubeState.B[7], cubeState.B[4], cubeState.B[1],
+            cubeState.B[8], cubeState.B[5], cubeState.B[2]
+          ];
+          const temp = [cubeState.U[0], cubeState.U[1], cubeState.U[2]];
+          newState.U[0] = cubeState.R[2];
+          newState.U[1] = cubeState.R[5];
+          newState.U[2] = cubeState.R[8];
+          newState.R[2] = cubeState.D[8];
+          newState.R[5] = cubeState.D[7];
+          newState.R[8] = cubeState.D[6];
+          newState.D[8] = cubeState.L[6];
+          newState.D[7] = cubeState.L[3];
+          newState.D[6] = cubeState.L[0];
+          newState.L[6] = temp[0];
+          newState.L[3] = temp[1];
+          newState.L[0] = temp[2];
+        } else if (move === "B'") {
+          newState.B = [
+            cubeState.B[2], cubeState.B[5], cubeState.B[8],
+            cubeState.B[1], cubeState.B[4], cubeState.B[7],
+            cubeState.B[0], cubeState.B[3], cubeState.B[6]
+          ];
+          const temp = [cubeState.U[0], cubeState.U[1], cubeState.U[2]];
+          newState.U[0] = cubeState.L[6];
+          newState.U[1] = cubeState.L[3];
+          newState.U[2] = cubeState.L[0];
+          newState.L[6] = cubeState.D[8];
+          newState.L[3] = cubeState.D[7];
+          newState.L[0] = cubeState.D[6];
+          newState.D[8] = cubeState.R[2];
+          newState.D[7] = cubeState.R[5];
+          newState.D[6] = cubeState.R[8];
+          newState.R[2] = temp[0];
+          newState.R[5] = temp[1];
+          newState.R[8] = temp[2];
+        }
+
+        cubeState = newState;
+        draw2DNet();
+      }
+
+      function toggleView() {
+        is3DView = !is3DView;
+        const toggleButton = document.querySelector('.toggle-view');
+        const threeCanvas = renderer.domElement;
+        const cube2DCanvas = document.getElementById('cube2D');
+
+        if (is3DView) {
+          toggleButton.textContent = 'Switch to 2D';
+          threeCanvas.classList.remove('hidden');
+          cube2DCanvas.classList.remove('active');
+          if (isFullscreen) {
+            toggleFullscreen();
+          }
+          controls.enabled = true;
+        } else {
+          toggleButton.textContent = 'Switch to 3D';
+          threeCanvas.classList.add('hidden');
+          cube2DCanvas.classList.add('active');
+          controls.enabled = false;
+          resize2DCanvas();
+          draw2DNet();
+        }
       }
 
       function animate() {
@@ -329,7 +742,9 @@
         }
 
         controls.update();
-        renderer.render(scene, camera);
+        if (is3DView) {
+          renderer.render(scene, camera);
+        }
       }
 
       function updateAnimation(deltaTime) {
@@ -361,11 +776,13 @@
           pivot.remove(cubie);
         });
         cubeGroup.remove(pivot);
+        if (currentAnimation) {
+          updateCubeState(currentAnimation.moveName);
+        }
       }
 
       function enqueueMove(move) {
-        // Removed gameActive check to allow moves anytime
-        if (isSolving) return; // Still prevent moves during solving
+        if (isSolving) return;
         moveQueue.push(move);
         moveCount++;
         document.getElementById('moveCount').textContent = moveCount;
@@ -456,6 +873,16 @@
           cubie.quaternion.copy(cubie.userData.solvedQuaternion);
         });
         
+        cubeState = {
+          U: Array(9).fill('U'),
+          D: Array(9).fill('D'),
+          L: Array(9).fill('L'),
+          R: Array(9).fill('R'),
+          F: Array(9).fill('F'),
+          B: Array(9).fill('B')
+        };
+        draw2DNet();
+        
         document.getElementById('message').classList.remove('show-message');
       }
 
@@ -483,7 +910,7 @@
       }
 
       function onPuzzleSolved() {
-        if (!gameActive) return; // Only trigger when game is active
+        if (!gameActive) return;
         gameActive = false;
         const solveTime = Math.floor((Date.now() - startTime) / 1000);
         
@@ -535,6 +962,10 @@
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
+        if (!is3DView) { // Resize 2D canvas in all 2D modes
+          resize2DCanvas();
+          draw2DNet();
+        }
       }
     </script>
   </body>
